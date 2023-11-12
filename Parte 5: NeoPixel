@@ -1,0 +1,82 @@
+#include <Adafruit_NeoPixel.h>
+
+#define PIN  23
+#define NUMPIXELS  16
+
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB);
+
+void Strobe(byte red, byte green, byte blue, int StrobeCount, int FlashDelay, int EndPause);
+void colorWipe(byte red, byte green, byte blue, int SpeedDelay);
+void clockwiseGreen(int SpeedDelay);
+void setPixel(int Pixel, byte red, byte green, byte blue);
+void setAll(byte red, byte green, byte blue);
+
+void setup() {
+  Serial.begin(115200);
+
+  pixels.begin(); 
+  pixels.clear();
+  pixels.setBrightness(150);
+
+  // Encender todos los LEDs de color rosado con la función Strobe (4 veces)
+  Strobe(255, 192, 203, 4, 1000, 500);
+
+  // Hacer un color wipe de color celeste pastel durante 5 segundos
+  for(int i = 0; i < 3; i++) {
+    colorWipe(135, 206, 250, 50); // Celeste pastel
+    delay(2000);
+  }
+  
+  // Prender uno por uno de color verde menta en sentido de las agujas del reloj durante 3 segundos
+  for (int i = 0; i < 2; i++) {
+    clockwiseGreen(50); // Verde menta
+    delay(3000);
+  }
+
+  // Realizar 5 destellos de color celeste de 1 milisegundo cada uno
+  Strobe(0, 0, 255, 5, 1000, 500);
+}
+
+void loop() {
+  //Aún no hay nada en el bucle
+}
+
+//Funciones principales del NeoPixel, configuración de cada una
+void Strobe(byte red, byte green, byte blue, int StrobeCount, int FlashDelay, int EndPause){
+  for(int j = 0; j < StrobeCount; j++) {
+    setAll(red, green, blue);
+    pixels.show();
+    delay(FlashDelay);
+    setAll(0, 0, 0);
+    pixels.show();
+    delay(FlashDelay);
+  }
+  delay(EndPause);
+}
+
+void colorWipe(byte red, byte green, byte blue, int SpeedDelay) {
+  for(uint16_t i = 0; i < NUMPIXELS; i++) {
+    setPixel(i, red, green, blue);
+    pixels.show();
+    delay(SpeedDelay);
+  }
+}
+
+void clockwiseGreen(int SpeedDelay) {
+  for(int i = 0; i < NUMPIXELS; i++) {
+    setPixel(i, 0, 255, 0); // Verde
+    pixels.show();
+    delay(SpeedDelay);
+  }
+}
+
+void setPixel(int Pixel, byte red, byte green, byte blue) {
+  pixels.setPixelColor(Pixel, pixels.Color(red, green, blue));
+}
+
+void setAll(byte red, byte green, byte blue) {
+  for(int i = 0; i < NUMPIXELS; i++) {
+    setPixel(i, red, green, blue); 
+  }
+  pixels.show();
+}
