@@ -1,1 +1,122 @@
+#include <Adafruit_NeoPixel.h>
+#include <Temperature_LM75_Derived.h>
+#include <Wire.h>
 
+#define PIN  23
+#define NUMPIXELS  16
+#define LM75_SDA 22
+#define LM75_SCL 21
+
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB);
+
+void Strobe(byte red, byte green, byte blue, int StrobeCount, int FlashDelay, int EndPause);
+void colorWipe(byte red, byte green, byte blue, int SpeedDelay);
+void clockwisePurple(int SpeedDelay);
+void setPixel(int Pixel, byte red, byte green, byte blue);
+void setAll(byte red, byte green, byte blue);
+
+void temperatura();
+
+TwoWire I2C_BUS = TwoWire(0);
+Generic_LM75 LM75(&I2C_BUS);
+
+void setup() {
+  Serial.begin(9600);
+
+  pixels.begin(); 
+  pixels.clear();
+  pixels.setBrightness(150);
+
+  I2C_BUS.begin(LM75_SDA, LM75_SCL);
+
+  // Encender todos los LEDs de color blanco con la función Strobe (4 veces)
+  Strobe(255, 255, 255, 3, 1000, 500);
+
+  // Hacer un color wipe de color verde, amarillo o rojo (dependiendo de la temperatura) durante varios segundos
+  for(int i = 0; i < 3; i++) {
+    colorWipe(135, 206, 250, 50); //verde/amarillo/rojo 
+    temperatura();
+    delay(2000);
+  }
+  
+  // Prender uno por uno de color morado en sentido de las agujas del reloj durante 3 segundos
+  for (int i = 0; i < 2; i++) {
+    clockwisePurple(100); 
+    delay(2000);
+  }
+
+  // Realizar 5 destellos de color azul de 1 segundo cada uno
+  Strobe(0, 0, 255, 5, 1000, 500);
+}
+
+void loop() {
+
+}
+
+void Strobe(byte red, byte green, byte blue, int StrobeCount, int FlashDelay, int EndPause){
+  for(int j = 0; j < StrobeCount; j++) {
+    setAll(red, green, blue);
+    pixels.show();
+    delay(FlashDelay);
+    setAll(0, 0, 0);
+    pixels.show();
+    delay(FlashDelay);
+  }
+  delay(EndPause);
+}
+
+//Realiza la medición de la temperatura (16 veces por cada color hasta terminar el conteo) y dependiendo del dato, cambia de color
+void colorWipe(byte red, byte green, byte blue, int SpeedDelay) {
+  for(uint16_t i = 0; i < NUMPIXELS; i++) {
+    float temp = LM75.readTemperatureC();
+    byte red, green, blue;
+
+    if(temp >= 23 && temp <= 25) {
+      red = 0;
+      green = 255;
+      blue = 0;
+    } else if(temp > 25 && temp <= 28) {
+      red = 255;
+      green = 255;
+      blue = 0;
+    } else if(temp > 28.5) {
+      red = 255;
+      green = 0;
+      blue = 0;
+    }
+
+    setPixel(i, red, green, blue);
+    pixels.show();
+    delay(SpeedDelay);
+    if(i < 16) {
+      temperatura();
+      delay(1000);
+    }
+  }
+}
+
+void clockwisePurple(int SpeedDelay) {
+  for(int i = 0; i < NUMPIXELS; i++) {
+    setPixel(i, 128, 0, 128); // Morado
+    pixels.show();
+    delay(SpeedDelay);
+  }
+}
+
+void setPixel(int Pixel, byte red, byte green, byte blue) {
+  pixels.setPixelColor(Pixel, pixels.Color(red, green, blue));
+}
+
+void setAll(byte red, byte green, byte blue) {
+  for(int i = 0; i < NUMPIXELS; i++) {
+    setPixel(i, red, green, blue); 
+  }
+  pixels.show();
+}
+
+void temperatura() {
+    float temp = LM75.readTemperatureC();
+    Serial.print("Temperatura: ");
+    Serial.print(temp);
+    Serial.println(" °C");
+}
