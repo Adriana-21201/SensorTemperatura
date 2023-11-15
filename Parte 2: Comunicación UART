@@ -1,1 +1,142 @@
+#include <Arduino.h>
+#include <Adafruit_NeoPixel.h>
+#include <Temperature_LM75_Derived.h>
+#include <Wire.h>
 
+#define PIN  23
+#define NUMPIXELS  16
+#define LM75_SDA 22
+#define LM75_SCL 21
+
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB);
+
+void Strobe(byte red, byte green, byte blue, int StrobeCount, int FlashDelay, int EndPause);
+void colorWipe(byte red, byte green, byte blue, int SpeedDelay);
+void clockwisePurple(int SpeedDelay);
+void setPixel(int Pixel, byte red, byte green, byte blue);
+void setAll(byte red, byte green, byte blue);
+
+TwoWire I2C_BUS = TwoWire(0);
+Generic_LM75 LM75(&I2C_BUS);
+
+float temp = 0;
+uint16_t contador = 0;
+
+void setup() {
+  // Inicializar comunicación serial para depuración
+  Serial.begin(9600);
+  Serial2.begin(9600);
+
+  // Inicializar tira de NeoPixel
+  pixels.begin(); 
+  pixels.clear();
+  pixels.setBrightness(150);
+
+  // Inicializar comunicación I2C para el sensor de temperatura LM75
+  I2C_BUS.begin(LM75_SDA, LM75_SCL);
+
+  // Encender todos los LEDs en blanco usando la función Strobe (3 veces)
+  Strobe(255, 255, 255, 3, 1000, 500);
+  
+  // Encender LEDs uno por uno en morado en sentido de las agujas del reloj durante 2 segundos
+ 
+
+  // Realizar 5 destellos azules, cada uno con una duración de 1 segundo
+}
+
+void loop() {
+  if(Serial2.available() > 0) {
+    char recibido = Serial2.read();
+    if(recibido == 'M') {
+      // Leer temperatura del sensor LM75
+      temp = LM75.readTemperatureC();
+      Serial.print("Temperatura: ");
+      Serial.print(temp);
+      Serial.println(" °C");
+
+      // Configurar brillo de NeoPixel y mostrar un efecto de barrido de color basado en la temperatura
+      pixels.setBrightness(255);
+      colorWipe(125, 206, 250, 50);
+      delay(1000);
+      pixels.clear();
+
+      // Reiniciar el contador si supera el número de píxeles
+      if(contador > 15) {
+        contador = 0;
+      }
+
+      // Convertir la temperatura a una cadena y enviarla por Serial2
+      char tempAdri[8];
+      dtostrf(temp, 4, 2, tempAdri);
+      Serial2.print(tempAdri);
+    }
+    if(recibido == 'P') {
+      // Rotar LEDs en color morado en sentido de las agujas del reloj y luego realizar destellos azules
+      for (int i = 0; i < 1; i++) {
+        clockwisePurple(100); 
+        delay(2000);
+        Strobe(0, 0, 255, 5, 1000, 500);
+        pixels.clear();
+      }
+    }
+  }
+}
+
+// Destellar la tira de NeoPixel con un color y temporización específicos
+void Strobe(byte red, byte green, byte blue, int StrobeCount, int FlashDelay, int EndPause){
+  for(int j = 0; j < StrobeCount; j++) {
+    setAll(red, green, blue);
+    pixels.show();
+    delay(FlashDelay);
+    setAll(0, 0, 0);
+    pixels.show();
+    delay(FlashDelay);
+  }
+  delay(EndPause);
+}
+
+// Mostrar un efecto de barrido de color en la tira de NeoPixel basado en la temperatura
+void colorWipe(byte red, byte green, byte blue, int SpeedDelay) {
+  // Ajustar el color según el rango de temperatura
+  if(temp >= 23 && temp <= 25) {
+    red = 0;
+    green = 255;
+    blue = 0;
+  } else if(temp > 25 && temp <= 28) {
+    red = 255;
+    green = 255;
+    blue = 0;
+  } else if(temp > 28.5) {
+    red = 255;
+    green = 0;
+    blue = 0;
+  }
+  
+  // Establecer el color para el píxel actual y mostrarlo
+  setPixel(contador, red, green, blue);
+  pixels.show();
+  delay(SpeedDelay);
+  contador++;
+}
+
+// Mostrar una rotación en sentido de las agujas del reloj de color morado en la tira de NeoPixel
+void clockwisePurple(int SpeedDelay) {
+  for(int i = 0; i < NUMPIXELS; i++) {
+    setPixel(i, 128, 0, 128); // Morado
+    pixels.show();
+    delay(SpeedDelay);
+  }
+}
+
+// Establecer el color de un píxel específico en la tira de NeoPixel
+void setPixel(int Pixel, byte red, byte green, byte blue) {
+  pixels.setPixelColor(Pixel, pixels.Color(red, green, blue));
+}
+
+// Establecer el mismo color en todos los píxeles de la tira de NeoPixel
+void setAll(byte red, byte green, byte blue) {
+  for(int i = 0; i < NUMPIXELS; i++) {
+    setPixel(i, red, green, blue); 
+  }
+  pixels.show();
+}
