@@ -1,1 +1,56 @@
+#define MISO PA_4
+#define MOSI PA_5
+#define CS PA_3
+#define SCK PA_2
 
+int temperatura = 0;
+int guardar = 0;
+int lasttemperatura = 0;
+int lastguardar = 0;
+String tempThng;
+
+void setup() {
+Serial.print("Inicializando SD...");
+  if (!SD.begin(CS)) {
+    Serial.println("Inicialización fallida");
+    return;
+  }
+
+  Serial.println("Inicialización exitosa");
+}
+
+void loop() {
+ if (guardar == LOW  && lastguardar == HIGH) {
+ // Apertura del archivo "temp.txt" para escritura
+    LCD_Clear(0x00);
+    Serial2.print("P");
+    String charm = "Guardando...";
+    LCD_Print(charm, 80, 100, 2, 0xffff, 0x0000);
+    for(int x = 0; x <100;x++) {
+    delay(15);
+    int anime1 = (x/4)%4;
+    //LCD_Sprite(x, y, ancho, altura, bitmap, columnas, index, flip, offset)
+    LCD_Sprite(10, 176, 25, 28, charmander, 4, anime1, 0, 0); 
+    LCD_Sprite(240, 155, 47, 44, squirtle, 4, anime1, 0, 1);
+
+    for(int x = 0; x <319; x++) {
+    LCD_Bitmap(x, 207, 16, 16, tile);
+    LCD_Bitmap(x, 223, 16, 16, tile);
+    x += 15;
+   }
+ } LCD_Clear(0x00);
+}
+    archive = SD.open("temp.txt", FILE_WRITE);
+    if (archive) {
+      Serial.print("Esperando a que se guarde...");
+      archive.println(tempThng);
+      archive.close();
+      Serial.println("done");
+  }
+  else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+    }  
+  lasttemperatura = temperatura;
+  lastguardar = guardar;
+}
